@@ -8,11 +8,20 @@ const { PORT } = ENV;
 const app = express();
 
 app.use(express.json());
-app.use(cors({
-  origin: true, // Allow all origins
-  credentials: true
-}));
-app.options("*", cors()); // handle preflight
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const allowed = ["http://localhost:4200", "https://angular-auth-client.vercel.app"];
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: "GET,POST,PUT,DELETE",
+    credentials: true,
+  })
+);
 
 
 app.use("/api", userRoutes);
