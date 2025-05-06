@@ -10,11 +10,21 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:4200", "https://angular-auth-client.vercel.app"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    origin: (origin, callback) => {
+      const allowed = ["http://localhost:4200", "https://angular-auth-client.vercel.app"];
+      if (!origin || allowed.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: "GET,POST,PUT,DELETE",
     credentials: true,
   })
 );
+app.options("*", cors()); // handle preflight
+
+
 app.use("/api", userRoutes);
 app.use('/uploads', express.static('uploads'));
 
