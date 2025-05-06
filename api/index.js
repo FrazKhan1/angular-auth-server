@@ -8,29 +8,23 @@ const { PORT } = ENV;
 const app = express();
 
 app.use(express.json());
+app.use(cors({
+  origin: true, // Allow all origins
+  credentials: true
+}));
+app.options("*", cors()); // handle preflight
 
-const corsOptions = {
-  origin: [
-    "http://localhost:4200",
-    "https://angular-auth-client.vercel.app",
-    "https://angular-auth-client.vercel.app/",
-  ],
-  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-
-app.use(cors(corsOptions));
-
-app.options("*", cors(corsOptions));
 
 app.use("/api", userRoutes);
 app.use('/uploads', express.static('uploads'));
 
+
+const port = PORT;
+
 connectDB();
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
 
 export default app;
