@@ -8,25 +8,18 @@ const { PORT } = ENV;
 const app = express();
 
 app.use(express.json());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      const allowed = ["http://localhost:4200", "https://angular-auth-client.vercel.app"];
-      if (!origin || allowed.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    methods: "GET,POST,PUT,DELETE",
-    credentials: true,
-  })
-);
+const corsOptions = {
+  origin: ["http://localhost:4200", "https://angular-auth-client.vercel.app"],
+  methods: "GET,POST,PUT,DELETE,OPTIONS",
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  preflightContinue: false, // Important for Vercel
+};
 
+app.use(cors(corsOptions));
 
 app.use("/api", userRoutes);
-app.use('/uploads', express.static('uploads'));
-
+app.use("/uploads", express.static("uploads"));
 
 const port = PORT;
 
