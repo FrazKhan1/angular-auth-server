@@ -1,8 +1,8 @@
 import express from "express";
-import { connectDB } from "./config/db.config.js";
 import userRoutes from "./routes/user.route.js";
 import cors from "cors";
 import { ENV } from "./config/env.config.js";
+import { connectDB } from "./config/db.config.js";
 const { PORT } = ENV;
 
 const app = express();
