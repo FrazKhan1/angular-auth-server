@@ -10,14 +10,14 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:4200",
+    origin: ["http://localhost:4200", "https://angular-auth-client.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
 );
 app.use("/api", userRoutes);
 
-const port = PORT
+const port = PORT;
 
 connectDB();
 
