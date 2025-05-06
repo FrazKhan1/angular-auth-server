@@ -16,6 +16,8 @@ app.use(
   })
 );
 app.use("/api", userRoutes);
+app.use('/uploads', express.static('uploads'));
+
 
 const port = PORT;
 

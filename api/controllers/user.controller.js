@@ -6,7 +6,7 @@ const { JWT_SECRET } = ENV;
 
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, profileImage } = req.body;
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -21,6 +21,7 @@ export const register = async (req, res) => {
       lastName,
       email,
       password: passwordHash,
+      profileImage: null,
     });
     await newUser.save();
     return res
@@ -67,5 +68,34 @@ export const login = async (req, res) => {
       error: error.message,
       stack: error.stack,
     });
+  }
+};
+
+export const profile = async (req, res) => {
+  try {
+    const { firstName, lastName, email } = req.body;
+    const profileImage = req.file ? req.file.filename : null;
+
+    const updatedUser = await User.findOneAndUpdate(
+      { email }, // filter
+      {
+        firstName,
+        lastName,
+        email,
+        ...(profileImage && { profileImage }),
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      message: "Profile updated",
+      data: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
   }
 };
