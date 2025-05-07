@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
+import { uploadToCloudinary } from "../config/upload.js";
 const { JWT_SECRET } = ENV;
 
 export const register = async (req, res) => {
@@ -73,16 +74,21 @@ export const login = async (req, res) => {
 
 export const profile = async (req, res) => {
   try {
-    const { firstName, lastName, email } = req.body;
-    const profileImage = req.file ? req.file.filename : null;
+    const { firstName, lastName, email, profileImage } = req.body;
+    let dp = null;
+
+    if (profileImage) {
+      const res = await uploadToCloudinary(req.file.buffer);
+      dp = res?.url;
+    }
 
     const updatedUser = await User.findOneAndUpdate(
-      { email }, // filter
+      { email },
       {
         firstName,
         lastName,
         email,
-        ...(profileImage && { profileImage }),
+        ...(dp && { profileImage: dp }),
       },
       { new: true }
     );
@@ -96,6 +102,10 @@ export const profile = async (req, res) => {
       data: updatedUser,
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+      stack: error.stack,
+    });
   }
 };
