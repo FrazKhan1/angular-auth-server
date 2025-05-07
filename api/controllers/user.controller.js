@@ -74,16 +74,17 @@ export const login = async (req, res) => {
 
 export const profile = async (req, res) => {
   try {
-    const { firstName, lastName, email, profileImage } = req.body;
+    const { firstName, lastName, email } = req.body;
+    const profileImage = req.file ? req.file.buffer : null;
     let dp = null;
 
     if (profileImage) {
-      const res = await uploadToCloudinary(req.file.buffer);
+      const res = await uploadToCloudinary(profileImage);
       dp = res?.url;
     }
 
     const updatedUser = await User.findOneAndUpdate(
-      { email },
+      { email }, // filter
       {
         firstName,
         lastName,
