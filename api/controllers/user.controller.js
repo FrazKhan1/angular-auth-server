@@ -5,7 +5,7 @@ import { ENV } from "../config/env.config.js";
 import { uploadToCloudinary } from "../config/upload.js";
 import verifyEmailTemplate from "../templates/verifyEmailTemplate.js";
 import sendMail from "../utils/sendMail.js";
-const { JWT_SECRET } = ENV;
+const { JWT_SECRET, BASE_URL } = ENV;
 
 export const register = async (req, res) => {
   try {
@@ -28,14 +28,14 @@ export const register = async (req, res) => {
       isVerified: false,
     });
 
-    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, {
       expiresIn: "1d",
     });
 
     newUser.verificationToken = token;
     await newUser.save();
 
-    const link = `http://localhost:4200/verify-email?token=${token}`;
+    const link = `${BASE_URL}/verify-email?token=${token}`;
     const html = verifyEmailTemplate(firstName || email, link);
 
     await sendMail({
