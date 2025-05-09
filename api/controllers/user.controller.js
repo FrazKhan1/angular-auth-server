@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
 import { uploadToCloudinary } from "../config/upload.js";
+import verifyEmailTemplate from "../templates/verifyEmailTemplate.js";
+import sendMail from "../utils/sendMail.js";
 const { JWT_SECRET } = ENV;
 
 export const register = async (req, res) => {
@@ -23,7 +25,25 @@ export const register = async (req, res) => {
       email,
       password: passwordHash,
       profileImage: null,
+      isVerified: false,
     });
+
+    const token = jwt.sign({ userId: newUser._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    newUser.verificationToken = token;
+    await newUser.save();
+
+    const link = `http://localhost:4200/verify-email?token=${token}`;
+    const html = verifyEmailTemplate(firstName || email, link);
+
+    await sendMail({
+      to: email,
+      subject: "Verify your Email",
+      html,
+    });
+
     await newUser.save();
     return res
       .status(201)
@@ -49,6 +69,12 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    if (!user.isVerified) {
+      return res
+        .status(400)
+        .json({ message: "Please verify your email first" });
     }
 
     const userData = user.toObject();
@@ -108,5 +134,25 @@ export const profile = async (req, res) => {
       error: error.message,
       stack: error.stack,
     });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  const { token } = req.query;
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+
+    if (!user || user.isVerified)
+      return res.status(400).json({ message: "Invalid or already verified." });
+
+    user.isVerified = true;
+    user.verificationToken = null;
+    await user.save();
+
+    res.status(200).json({ message: "Email verified successfully" });
+  } catch (error) {
+    res.status(400).json({ message: "Invalid or expired token." });
   }
 };
