@@ -107,7 +107,7 @@ export const profile = async (req, res) => {
     }
 
     const updatedUser = await User.findOneAndUpdate(
-      { email }, // filter
+      { email },
       {
         firstName,
         lastName,
