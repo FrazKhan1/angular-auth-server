@@ -3,22 +3,33 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { ENV } from "../config/env.config.js";
 import { uploadToCloudinary } from "../config/upload.js";
-import verifyEmailTemplate from "../templates/verifyEmailTemplate.js";
-import sendMail from "../utils/sendMail.js";
+import { sendVerificationEmail } from "../utils/sendVerificationEmail.js";
 const { JWT_SECRET, BASE_URL } = ENV;
 
 export const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, profileImage } = req.body;
+    const { firstName, lastName, email, password } = req.body;
+
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-    const passwordHash = await bcrypt.hash(password, 10);
 
+    const existingUser = await User.findOne({ email });
+
+    if (existingUser) {
+      if (existingUser.isVerified) {
+        return res.status(400).json({ message: "User already exists" });
+      }
+
+      await sendVerificationEmail(existingUser);
+
+      return res.status(400).json({
+        message:
+          "You are already registered. A new verification link has been sent to your email.",
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
     const newUser = new User({
       firstName,
       lastName,
@@ -28,23 +39,9 @@ export const register = async (req, res) => {
       isVerified: false,
     });
 
-    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
-
-    newUser.verificationToken = token;
     await newUser.save();
+    await sendVerificationEmail(newUser);
 
-    const link = `${BASE_URL}/verify-email?token=${token}`;
-    const html = verifyEmailTemplate(firstName || email, link);
-
-    await sendMail({
-      to: email,
-      subject: "Verify your Email",
-      html,
-    });
-
-    await newUser.save();
     return res
       .status(201)
       .json({ message: "User registered successfully", success: true });
@@ -154,5 +151,37 @@ export const verifyEmail = async (req, res) => {
     res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
     res.status(400).json({ message: "Invalid or expired token." });
+  }
+};
+
+export const resendLink = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const existingUser = await User.findOne({ email });
+
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (existingUser.isVerified) {
+      return res.status(400).json({ message: "User is already verified" });
+    }
+
+    await sendVerificationEmail(existingUser);
+
+    return res
+      .status(200)
+      .json({ message: "Verification email sent successfully", success: true });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+      stack: error.stack,
+    });
   }
 };
